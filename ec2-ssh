@@ -47,7 +47,7 @@ if [ -z "$ec2_user" ]; then
 fi
 
 
-ec2_hostname=`python ${root_dir}/ec2_get_dns.py ${ec2_region} ${ec2_instance}`
+ec2_hostname=`python ${getdns} ${ec2_region} ${ec2_instance}`
 if [ $? -eq 0 ]; then
 	ssh ${ec2_user}@${ec2_hostname}
 else
