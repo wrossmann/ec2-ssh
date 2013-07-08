@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# read shotcuts from user's ~/.ec2list file, retrieve
+# hostname using ec2-get-dns, and connect using ssh.
+# username can be optionall specified in file
+
+# shortcut file name
+shortfile=~/.ec2list
+# actual location of this script, used to find ec2_get_dns.py
+# which should be in the same folder.
+root_dir=`dirname ${BASH_SOURCE[0]}`
+# ec2_get_dns.py location
+getdns=${root_dir}/ec2-get-dns
+
+if [ ! -f ${shortfile} ]; then
+	echo "could not find shortcut ${shortfile}, creating..."
+	sleep 1
+	echo "# shortcut-name:region:instance-id[:username]" > ${shortfile}
+	if [ -z "$EDITOR"]; then
+		vi $shortfile
+	else
+		$EDITOR $shortfile
+	fi
+	if [ ! -f ${shortfile} ]; then
+		echo "Still no shortcut file, exiting"
+		exit 1
+	fi
+elif [ $? -ne 1 ]; then
+	echo "invalid args"
+	exit 1
+elif [ -z "$1" ]; then
+	echo "invalid args"
+	exit 1
+fi
+
+res=`grep "^$1:" $shortfile`
+if [ -z "$res" ]; then
+	echo "could not find $1 in ${shortfile}."
+	exit 1
+fi
+
+ec2_region=`echo $res | awk -F ':' '{print $2}'`
+ec2_instance=`echo $res | awk -F ':' '{print $3}'`
+ec2_user=`echo $res | awk -F ':' '{print $4}'`
+if [ -z "$ec2_user" ]; then
+	ec2_user=ec2-user
+fi
+
+
+ec2_hostname=`python ${root_dir}/ec2_get_dns.py ${ec2_region} ${ec2_instance}`
+if [ $? -eq 0 ]; then
+	ssh ${ec2_user}@${ec2_hostname}
+else
+	exit 1
+fi
