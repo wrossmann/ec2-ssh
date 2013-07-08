@@ -1,0 +1,73 @@
+#!/usr/bin/python
+#
+# retreive an EC2 instance's public DNS name based on region
+# and instance ID. Requires boto [pip install boto] and 
+# a ~/.boto file with the user's credentials.
+import sys, os
+
+# check args, print syntax
+if len(sys.argv) != 3:
+  sname = os.path.basename(sys.argv[0])
+	sys.stderr.write("Invalid Arguments.\n" +
+		"Syntax: %s region-name instance-id\n" % sname +
+		"\teg: %s us-west-2 i-12345678\n" % sname +
+		"\tor: %s -s shortcut-name\n" % sname)
+	exit(1)
+
+# get info from ~/.ec2list
+def getfromshort(shortname):
+	user_home = os.getenv('HOME')
+	if os.path.exists(user_home+'/.ec2list'):
+		import re
+		fh = open(user_home+'/.ec2list')
+		while True:
+			line = fh.readline()
+			if not line:
+				break
+			match = re.match('^('+shortname+'):([^:]*):([^:]*)(?::([^:]*))?$', line.strip())
+			if not match:
+				continue
+			else:
+				break
+		if not match:
+			sys.stderr.write("Could not find %s in ~/.ec2list\n" % shortname)
+			return None
+		return match.groups()
+	else:
+		sys.stderr.write("Cannot find ~/.ec2list\n")
+		return None
+
+# prepare args
+if sys.argv[1] == '-s':
+	shortname = sys.argv[2]
+	res = getfromshort(shortname)
+	if not res:
+		exit(1)
+	region = res[1]
+	search_id = res[2]
+else:
+	region = sys.argv[1]
+	search_id = sys.argv[2]
+
+# prepare connection
+import boto.ec2
+conn = boto.ec2.connect_to_region(region)
+reservations = conn.get_all_instances()
+
+# find
+# not super efficient, but I can't find a simple
+# get_instance_by_id(instance_id) function
+# as long as you don't have a squillion instances
+# in a single region it should be fine.
+for res in reservations:
+	for inst in res.instances:
+		if inst.id == search_id:
+			if inst.state == 'running':
+				print inst.public_dns_name
+				exit()
+			else:
+				sys.stderr.write("Instance %s not running\n" % inst.id)
+				exit(1)
+
+sys.stderr.write("Could not find instance %s in region %s\n" % (search_id,region))
+exit(1)
