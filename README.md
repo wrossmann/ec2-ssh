@@ -21,13 +21,13 @@ Remember to `chmod +x ec2-ssh ec2-get-dns`
 
 Usage
 -----
-Simply: `ecs-ssh shortcut-name`
+Simply: `ec2-ssh shortcut-name`
 
 Invoking ec2-ssh the first time will prompt you to create `~/.ec2list`, the format is:
 
     shortcut-name:ec2-region:instance-id[:username]
 
-Eg
+Eg:
 
     web-1:us-west-2:i-12345678
 
@@ -41,4 +41,4 @@ If the instance exists and is running will print the public DNS name, otherwise 
 
 Useful for something like:
 
-    scp /home/user/myfile.txt ec2-user@$(ssh-get-dns -s web1):/var/www/site1.com/html/
+    scp /home/user/myfile.txt ec2-user@$(ec2-get-dns -s web1):/var/www/site1.com/html/
